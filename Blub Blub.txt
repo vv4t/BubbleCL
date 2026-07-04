@@ -197,7 +197,9 @@ class UILogic {
 		text += "- Commands -" + String.Newline;
 		text += "!hub  |  !wave  |  !aso  |  !bomb  |  !akina" + String.Newline;
 		text += "!leaderboard  |  !zigzag" + String.Newline;
-		UI.CreatePopup("WelcomeMenu", "Welcome", 500, 600);
+		text += String.Newline;
+		text += "<color=#00ccff>Credit to Hannes for ZigZag</color>" + String.Newline;
+		UI.CreatePopup("WelcomeMenu", "Welcome", 500, 650);
 		UI.AddPopupLabel("WelcomeMenu", text);
 		UI.ShowPopup("WelcomeMenu");
 	}
@@ -1891,7 +1893,7 @@ class LZW {
 		self._firstLetter = "0";
 
 		self._dict = Dict();
-		self._charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !#$%&'()*+,-./:;<=>?@[\]^_`{|}~";
+		self._charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 		self._charsetSize = String.Length(self._charset);
 		self.InitDict();
 
