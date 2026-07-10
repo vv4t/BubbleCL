@@ -244,13 +244,15 @@ class UILogic {
 			target = "no one!";
 			result = parts.Get(1);
 			isNumeric = true;
+			
 			for (i in Range(0, String.Length(result), 1)) {
 				c = String.SubstringWithLength(result, i, 1);
 				if (c != "0" && c != "1" && c != "2" && c != "3" && c != "4" && c != "5" && c != "6" && c != "7" && c != "8" && c != "9") {
 					isNumeric = false;
 					break;
-        			}
+				}
 			}
+
 			if (isNumeric) {
 				result = Convert.ToInt(result);
 				for (_player in Network.Players) {
@@ -274,6 +276,29 @@ class UILogic {
 		elif (String.StartsWith(message, "!roll")) {
 			self.SayAfter("<color=white>" + Network.MyPlayer.Name + "</color> rolled for <color=green>" + Random.RandomInt(0, 101) + "</color>.");
 		}
+		elif (message == "!luck") {
+			number = Random.RandomInt(0, 101);
+			if (number < 20) {
+				self.SayAfter("<color=white>" + Network.MyPlayer.Name + "</color> rolled for PR " + number + " -  <color=black>Cursed</color>.");
+			} elif (number < 50) {
+				self.SayAfter("<color=white>" + Network.MyPlayer.Name + "</color> rolled for PR " + number + " - <color=red>Bad Luck</color>.");
+			} elif (number < 60) {
+				self.SayAfter("<color=white>" + Network.MyPlayer.Name + "</color> rolled for PR " + number + " - <color=grey>Average</color>.");
+			} elif (number < 80) {
+				self.SayAfter("<color=white>" + Network.MyPlayer.Name + "</color> rolled for PR " + number + " - <color=green>Lucky</color>.");
+			} else {
+				self.SayAfter("<color=white>" + Network.MyPlayer.Name + "</color> rolled for PR " + number + " - <color=#aaffaa><b>Super Lucky</b></color>.");
+			}
+		}
+		elif (message == "!quaso") {
+			a = Random.RandomFloat(0.0, 1.0);
+			number = Math.Round(Math.Pow(a, 6) * 6);
+			text = "quaso";
+			for (i in Range(0, number, 1)) {
+				text += "o";
+			}
+			self.SayAfter("<color=white>" + Network.MyPlayer.Name + "</color> bought a <color=#ffeeaa><i>" + text + "</i></color>.");
+		}
 	}
 
 	coroutine SayAfter(message) {
@@ -288,7 +313,12 @@ class UILogic {
 	}
 	
 	function Crash() {
-		while (true) {}
+		me = Network.MyPlayer.Character;
+		if (me != null) {
+			Network.MyPlayer.Character.Position.X = 1 / 0;
+		} else {
+			Game.Print("<color=red>You must be spawned in to sleep.</color>");
+		}
 	}
 
 	function UpdateBindLabel() {
@@ -336,7 +366,7 @@ class MC_ZigZagLogic {
 	function OnTick() {
 		for(titan in self._titans) {
 			titan.Health = titan.MaxHealth;
-			titan.Idle(1.0);                
+			titan.Idle(1.0);
 		}
 	}
 
@@ -395,12 +425,12 @@ class ZigZagLogic {
 	}
 
 	function OnTick() {
-    me = Network.MyPlayer.Character;
-    if (me != null) {
-      me.CurrentBlade = me.MaxBlade;
-      me.CurrentGas = me.MaxGas;
-      me.CurrentBladeDurability = me.MaxBladeDurability;
-    }
+		me = Network.MyPlayer.Character;
+		if (me != null) {
+			me.CurrentBlade = me.MaxBlade;
+			me.CurrentGas = me.MaxGas;
+			me.CurrentBladeDurability = me.MaxBladeDurability;
+		}
 
 		if (self.startTime != null) {
 			self.ShowTimerUI();
@@ -867,13 +897,16 @@ class StandardLogic {
 	}
 
 	function UpdateStatus() {
-		status = "[WAVE] " + Network.MyPlayer.Kills + "/" + Network.MyPlayer.Deaths + "/" + Network.MyPlayer.TotalDamage + "/" + Network.MyPlayer.HighestDamage;
+		status = "[WAVE] " + Network.MyPlayer.Kills + "/" + Network.MyPlayer.Deaths + "/" + Network.MyPlayer.HighestDamage + "/" + Network.MyPlayer.TotalDamage;
 		NetworkUtil.SetCustomProperty("ScoreStatus", status);
 	}
 
 	function OnCharacterSpawn(character) {
 		if (character.IsMine && character.Type == "Human") {
-			character.SetWeapon("Blades");
+			if (character.Weapon == "Thunderspear") {
+				Game.Print("<color=red>Thunderspears are only enabled in bomb pvp.</color>");
+				character.SetWeapon("Blades");
+			}
 			character.Team = "Human";
 		}
 	}
@@ -1278,7 +1311,7 @@ class HubLogic {
 		UI.SetLabel("TopCenter", "");
 		NetworkUtil.SetCustomProperty("ScoreStatus", "[HUB]");
 		self._playerSpawner.Spawn();
-    
+
 		Input.SetKeyDefaultEnabled("Human/AttackDefault", false);
 		Input.SetKeyDefaultEnabled("Human/AttackSpecial", false);
 	}
@@ -1292,7 +1325,7 @@ class HubLogic {
 		main.UX.RemoveBind("Interaction/Function2");
 		main.UX.RemoveBind("Interaction/Function3");
 		main.UX.RemoveBind("Interaction/Function4");
-    
+
 		Input.SetKeyDefaultEnabled("Human/AttackDefault", true);
 		Input.SetKeyDefaultEnabled("Human/AttackSpecial", true);
 	}
