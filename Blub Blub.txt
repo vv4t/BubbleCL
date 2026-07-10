@@ -1278,6 +1278,9 @@ class HubLogic {
 		UI.SetLabel("TopCenter", "");
 		NetworkUtil.SetCustomProperty("ScoreStatus", "[HUB]");
 		self._playerSpawner.Spawn();
+    
+		Input.SetKeyDefaultEnabled("Human/AttackDefault", false);
+		Input.SetKeyDefaultEnabled("Human/AttackSpecial", false);
 	}
 
 	function Deactivate(main) {
@@ -1289,6 +1292,9 @@ class HubLogic {
 		main.UX.RemoveBind("Interaction/Function2");
 		main.UX.RemoveBind("Interaction/Function3");
 		main.UX.RemoveBind("Interaction/Function4");
+    
+		Input.SetKeyDefaultEnabled("Human/AttackDefault", true);
+		Input.SetKeyDefaultEnabled("Human/AttackSpecial", true);
 	}
 
 	function OnCharacterSpawn(character) {
