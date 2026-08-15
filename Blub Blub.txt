@@ -225,10 +225,10 @@ class UILogic {
 	}
 
 	function OnChatInput(message) {
-		if (message == "!wave") { return MainController.SwitchMode("WAVE"); }
+		if (message == "!wave" || message == "!forest") { return MainController.SwitchMode("WAVE"); }
 		elif (message == "!aso") { return MainController.SwitchMode("ASO"); }
 		elif (message == "!bomb") { return MainController.SwitchMode("BOMB"); }
-		elif (message == "!hub") { return MainController.SwitchMode("HUB"); }
+		elif (message == "!hub" || message == "!blub") { return MainController.SwitchMode("HUB"); }
 		elif (message == "!akina") { return MainController.SwitchMode("AKINA"); }
 		elif (message == "!zigzag") { return MainController.SwitchMode("ZIGZAG"); }
 		elif (message == "!leaderboard" || message == "!top" || message == "!lb") { return MainController.TriggerAction("LeaderboardShow"); }
@@ -967,6 +967,7 @@ class AkinaLogic {
 	_startBarriers = null;
 	_started = false;
 	_finished = false;
+  _untilStart = 5.0;
 
 	function Init(mapOffset) {
 		self._mapOffset = mapOffset;
@@ -977,6 +978,7 @@ class AkinaLogic {
 		main.ListenOnAction.Add(self);
 		main.ListenOnSecond.Add(self);
 		main.ListenOnLoadMap.Add(self);
+		main.ListenOnChatInput.Add(self);
 		main.ListenOnFinishRace.Add(self);
 		main.ListenOnCharacterSpawn.Add(self);
 
@@ -996,11 +998,26 @@ class AkinaLogic {
 		main.ListenOnAction.Remove(self);
 		main.ListenOnSecond.Remove(self);
 		main.ListenOnLoadMap.Remove(self);
+		main.ListenOnChatInput.Remove(self);
 		main.ListenOnFinishRace.Remove(self);
 		main.ListenOnCharacterSpawn.Remove(self);
 
 		main.UX.RemoveBind("Interaction/Function1", "Retry");
 	}
+
+  function OnChatInput(message) {
+    if (String.StartsWith(message, "!start ")) {
+      startTime = Convert.ToFloat(String.Substring(message, String.Length("!start ")));
+      
+      if (startTime < 2.0 || startTime > 20.0) {
+        Game.Print("<color=red>Start time must be between 2.0s or 20.0s.</color>");
+        return false;
+      }
+
+      self._untilStart = startTime;
+      Game.Print("Set racing start time to " + self._untilStart + "s.");
+    }
+  }
 	
 	function OnCharacterSpawn(character) {
 		if (character.IsMine && character.Type == "Human") {
@@ -1074,7 +1091,7 @@ class AkinaLogic {
 		self._playerSpawner.Spawn();
 		self._started = false;
 		self._finished = false;
-		self._startTime = Time.GameTime + 5.0;
+		self._startTime = Time.GameTime + self._untilStart;
 	}
 
 	function SubmitScore(roundTime) {
@@ -1301,6 +1318,7 @@ class HubLogic {
 	function Activate(main) {
 		main.ListenOnAction.Add(self);
 		main.ListenOnSecond.Add(self);
+		main.ListenOnChatInput.Add(self);
 		main.ListenOnCharacterSpawn.Add(self);
 
 		main.UX.AddBind("Interaction/Function1", "Sit");
@@ -1319,6 +1337,7 @@ class HubLogic {
 	function Deactivate(main) {
 		main.ListenOnAction.Remove(self);
 		main.ListenOnSecond.Remove(self);
+		main.ListenOnChatInput.Remove(self);
 		main.ListenOnCharacterSpawn.Remove(self);
 
 		main.UX.RemoveBind("Interaction/Function1");
@@ -1342,6 +1361,31 @@ class HubLogic {
 	function OnSecond() {
 		self._playerSpawner.EndlessRespawn();
 	}
+
+  function OnChatInput(message) {
+    if (message == "!quack" && Network.IsMasterClient) {
+      self.CreateQuack();
+    }
+  }
+
+  function CreateQuack() {
+    base = Map.CreateMapObjectRaw("Scene,None,8,0,1,0,1,1,Quack,0.1855538,2.480555,-0.140213,0,0,0,1,1,1,Physical,All,Default,Default|255/255/255/255,Rigidbody|Mass:0.2|Gravity:0/-20/0|FreezeRotation:false|Interpolate:false,QuackChair,;");
+    baseID = Convert.ToString(base.ID);
+
+    a = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,3," + baseID + ",1,0,1,1,Sphere1i,0,2,0,0,0,0,2,1,1.5,Physical,All,Default,Default|255/251/0/255,;");
+    b = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,4," + baseID + ",1,0,1,1,Sphere1i,-0.5471626,2.418217,0,0,0,25.9826,1,1.5,0.7,Physical,All,Default,Default|255/251/0/255,;");
+    c = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,5," + baseID + ",1,0,1,1,Sphere1i,-1.059768,2.648526,0,0,0,0,0.7,0.3,0.5,Physical,All,Default,Default|153/112/66/142,;");
+    d = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,6," + baseID + ",1,0,1,1,Sphere1i,-0.861007,2.819101,-0.2330374,0,0,0,0.1,0.1,0.1,Physical,All,Default,Default|0/0/0/255,;");
+    e = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,7," + baseID + ",1,0,1,1,Sphere1i,-0.861007,2.819101,0.2378102,0,0,0,0.1,0.1,0.1,Physical,All,Default,Default|0/0/0/255,");
+    
+    a.Parent = base;
+    b.Parent = base;
+    c.Parent = base;
+    d.Parent = base;
+    e.Parent = base;
+
+    base.Position = Network.MyPlayer.Character.Position + Vector3(0.0, 3.0, 0.0);
+  }
 
 	function OnAction(action) {
 		me = Network.MyPlayer.Character;
@@ -2337,8 +2381,8 @@ extension MainController {
 extension MapLibrary {
 	function CreateHubMap(offset) {
 		objects = List();
-		objects.Add(Map.CreateMapObjectRaw("Scene,General/EditorHumanSpawnPoint,5,0,1,1,0,0,Human SpawnPoint,0,0,0,0,0,0,1,1,1,None,Entities,Default,Default|255/255/255/255,Tag|Name:HumanSpawnPoint;"));
-		objects.Add(Map.CreateMapObjectRaw("Scene,Arenas/Arena1,4,0,1,1,1,0,Arena1,0,0,0,0,0,0,1,1,1,Physical,Entities,Default,Default|255/255/255/255,;"));
+		objects.Add(Map.CreateMapObjectRaw("Scene,General/EditorHumanSpawnPoint,5,0,1,1,0,0,Human SpawnPoint,0,0,0,0,0,0,1,1,1,None,Entiti,Default,Default|255/255/255/255,Tag|Name:HumanSpawnPoint;"));
+		objects.Add(Map.CreateMapObjectRaw("Scene,Arenas/Arena1,4,0,1,1,1,0,Arena1,0,0,0,0,0,0,1,1,1,Physical,All,Default,Default|255/255/255/255,;"));
 		objects.Add(Map.CreateMapObjectRaw("Scene,Geometry/Plane1,6,0,1,1,1,0,Board,0,5.272698,-22.22935,270,0,0,32,1,9,Physical,Entities,Default,Default|255/255/255/255,;"));
 
 		for (obj in objects) {
@@ -2395,4 +2439,55 @@ extension MapUtil {
 
 		return map;
 	}
+}
+
+component QuackChair {
+  _collidingHuman = null;
+  _collidingSitter = false;
+  _inUse = false;
+  _chair = null;
+  SeatPosObjectName = "";
+  SeatPosObjectNameTooltip = "Enter the name of the object you want to set the sitting position as. (Ensure that the SeatPos object is parented to the Chair that has this component. If empty, will use object this component is on.";
+  InteractionText = "to sit down in the chair.";
+  InteractionTextTooltip = "This is the text that appears when interacting with the object.";
+
+  function Init() {
+    self._chair = self.MapObject.GetTransform(self.SeatPosObjectName);
+    self.MapObject.AddSphereCollider(CollideModeEnum.Region, CollideWithEnum.Characters, Vector3.Zero, 3.0);
+  }
+
+  function OnCollisionStay(other) {
+    if (other.Type == "Human" && other.IsMine) {
+      if (!self._inUse) {
+        UI.SetLabelForTime(UILabelEnum.MiddleCenter, "Press " + Input.GetKeyName(InputInteractionEnum.Interact) + " " + self.InteractionText, 0.1);
+        self._collidingHuman = other;
+        self._collidingSitter = true;
+      }
+    }
+  }
+    
+  function OnTick() {
+    self._collidingHuman = null;
+    self._collidingSitter = false;
+  }
+
+  function OnFrame() {
+    if (self._inUse) {
+      if (Input.GetKeyDown(InputInteractionEnum.Interact)) {
+        self._human.Unmount();
+        self._inUse = false;
+        return;
+      }
+    }
+    if (self._collidingHuman != null) {
+      if (Input.GetKeyDown(InputInteractionEnum.Interact)) {
+        if (self._collidingSitter && !self._inUse) {
+          self._inUse = true;
+          self._human = self._collidingHuman;
+          self._collidingHuman.MountTransform(self._chair, Vector3(0, 0, 0), Vector3.Zero);
+          Network.MyPlayer.Character.PlayAnimation(HumanAnimationEnum.HorseIdle);
+        }
+      }
+    }
+  }
 }
