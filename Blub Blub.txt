@@ -29,7 +29,9 @@ class Main {
 		bombMap = standardMap.CreateCopy(Vector3(-10000, 0, 10000));
 		zigZagMap = standardMap.CreateCopy(Vector3(-10000, 0, -10000));
 		hubMap = MapLibrary.CreateHubMap(Vector3(10000, 0, -10000));
-		akinaMap = Vector3(0, 0, -20000);
+		akinaMap = Vector3(-20000, 0, -20000);
+		iriSpid2Map = Vector3(20000, 0, -20000);
+		racing001Map = Vector3(-20000, 0, 20000);
 
 		if (Network.IsMasterClient) {
 			MC_MapTransferLogic().Activate(self);
@@ -54,7 +56,9 @@ class Main {
 		self._modes.Set("ASO", AsoLogic(asoMap));
 		self._modes.Set("BOMB", BombLogic(bombMap));
 		self._modes.Set("HUB", HubLogic(hubMap));
-		self._modes.Set("AKINA", AkinaLogic(akinaMap));
+		self._modes.Set("AKINA", RacingLogic(akinaMap, "Akina"));
+		self._modes.Set("SPID2", RacingLogic(iriSpid2Map, "IriSpid2"));
+		self._modes.Set("RACING001", RacingLogic(racing001Map, "Racing001"));
 		self._modes.Set("ZIGZAG", ZigZagLogic(zigZagMap));
 
 		NetworkUtil.SetCustomProperty("CurrentMode", "");
@@ -230,6 +234,8 @@ class UILogic {
 		elif (message == "!bomb") { return MainController.SwitchMode("BOMB"); }
 		elif (message == "!hub" || message == "!blub") { return MainController.SwitchMode("HUB"); }
 		elif (message == "!akina") { return MainController.SwitchMode("AKINA"); }
+		elif (message == "!spid2") { return MainController.SwitchMode("SPID2"); }
+		elif (message == "!001") { return MainController.SwitchMode("RACING001"); }
 		elif (message == "!zigzag") { return MainController.SwitchMode("ZIGZAG"); }
 		elif (message == "!leaderboard" || message == "!top" || message == "!lb") { return MainController.TriggerAction("LeaderboardShow"); }
 		elif (message == "!help") { UI.ShowPopup("WelcomeMenu"); }
@@ -960,7 +966,7 @@ class MC_StandardLogic {
 	}
 }
 
-class AkinaLogic {
+class RacingLogic {
 	_playerSpawner = null;
 	_mapLoaded = false;
 	_startTime = 0;
@@ -968,9 +974,11 @@ class AkinaLogic {
 	_started = false;
 	_finished = false;
   _untilStart = 5.0;
+  _mapName = "";
 
-	function Init(mapOffset) {
+	function Init(mapOffset, mapName) {
 		self._mapOffset = mapOffset;
+    self._mapName = mapName;
 	}
 
 	function Activate(main) {
@@ -987,10 +995,10 @@ class AkinaLogic {
 		if (self._mapLoaded) {
 			self.Reset();
 		} else {
-			main.MapLoader.Load("Akina");
+			main.MapLoader.Load(self._mapName);
 		}
 
-		NetworkUtil.SetCustomProperty("ScoreStatus", "[AKINA]");
+		NetworkUtil.SetCustomProperty("ScoreStatus", "[" + self._mapName + "]");
 	}
 
 	function Deactivate(main) {
@@ -1053,8 +1061,8 @@ class AkinaLogic {
 
 		finishTime = String.FormatFloat(self.GetRaceTime(), 2);
 		UI.SetLabelForTime("MiddleCenter", "<color=white>" + Network.MyPlayer.Name + "</color> finished in " + finishTime + "s!", 5.0);
-		Game.PrintAll("<color=white>" + Network.MyPlayer.Name + "</color> finished Akina in " + finishTime + "s!");
-		NetworkUtil.SetCustomProperty("ScoreStatus", "[AKINA]" + finishTime + "s");
+		Game.PrintAll("<color=white>" + Network.MyPlayer.Name + "</color> finished " + self._mapName + " in " + finishTime + "s!");
+		NetworkUtil.SetCustomProperty("ScoreStatus", "[" + self._mapName "]" + finishTime + "s");
 
 		self.SubmitScore();
 		self._finished = true;
@@ -1097,7 +1105,7 @@ class AkinaLogic {
 	function SubmitScore(roundTime) {
 		data = Dict();
 		data.Set("op", "PB_submit");
-		data.Set("category", "Akina");
+		data.Set("category", self._mapName);
 		data.Set("score", Math.Round(self.GetRaceTime() * 100));
 		Network.SendMessage(Network.MasterClient, Json.SaveToString(data));
 	}
@@ -1110,6 +1118,7 @@ class MC_MapTransferLogic {
 
 	function Init() {
 		self.CreateTransfer("Akina");
+		self.CreateTransfer("IriSpid2");
 	}
 
 	function Activate(main) {
@@ -1767,6 +1776,8 @@ class MC_LeaderboardLogic {
 		self._leaderboards.Set("300s", Leaderboard("ASO_300s", false, "k"));
 		self._leaderboards.Set("600s", Leaderboard("ASO_600s", false, "k"));
 		self._leaderboards.Set("Akina", Leaderboard("Akina", true, "s"));
+		self._leaderboards.Set("IriSpid2", Leaderboard("IriSpid2", true, "s"));
+		self._leaderboards.Set("Racing001", Leaderboard("Racing001", true, "s"));
 		self._leaderboards.Set("ZigZag", Leaderboard("ZigZag", true, "s"));
 	}
 
@@ -1850,6 +1861,10 @@ class LeaderboardLogic {
 			self.LeaderboardRequest("600s");
 		} elif (button == "PB_akina") {
 			self.LeaderboardRequest("Akina");
+		} elif (button == "PB_spid2") {
+			self.LeaderboardRequest("IriSpid2");
+		} elif (button == "PB_racing001") {
+			self.LeaderboardRequest("Racing001");
 		} elif (button == "PB_zigzag") {
 			self.LeaderboardRequest("ZigZag");
 		}
@@ -1863,11 +1878,13 @@ class LeaderboardLogic {
 	}
 
 	function CreateLeaderboardPopup() {
-		UI.CreatePopup("LeaderboardMenu", "Leaderboard", 300, 400);
+		UI.CreatePopup("LeaderboardMenu", "Leaderboard", 300, 600);
 		UI.AddPopupButton("LeaderboardMenu", "PB_aso100s", "100s");
 		UI.AddPopupButton("LeaderboardMenu", "PB_aso300s", "300s");
 		UI.AddPopupButton("LeaderboardMenu", "PB_aso600s", "600s");
 		UI.AddPopupButton("LeaderboardMenu", "PB_akina", "Akina");
+		UI.AddPopupButton("LeaderboardMenu", "PB_spid2", "Iri spid 2.0");
+		UI.AddPopupButton("LeaderboardMenu", "PB_racing001", "Racing 001");
 		UI.AddPopupButton("LeaderboardMenu", "PB_zigzag", "Zig Zag");
 	}
 }
