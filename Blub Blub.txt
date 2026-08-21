@@ -1378,7 +1378,7 @@ class HubLogic {
   }
 
   function CreateQuack() {
-    base = Map.CreateMapObjectRaw("Scene,None,8,0,1,0,1,1,Quack,0.1855538,2.480555,-0.140213,0,0,0,1,1,1,Physical,All,Default,Default|255/255/255/255,Rigidbody|Mass:0.2|Gravity:0/-20/0|FreezeRotation:false|Interpolate:false,QuackChair,;");
+    base = Map.CreateMapObjectRaw("Scene,None,8,0,1,0,1,1,Quack,0.1855538,2.780555,-0.140213,0,0,0,1,1,1,Physical,All,Default,Default|255/255/255/255,Rigidbody|Mass:0.2|Gravity:0/-20/0|FreezeRotation:false|Interpolate:false,QuackChair,;");
     baseID = Convert.ToString(base.ID);
 
     a = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,3," + baseID + ",1,0,1,1,Sphere1i,0,2,0,0,0,0,2,1,1.5,Physical,All,Default,Default|255/251/0/255,;");
