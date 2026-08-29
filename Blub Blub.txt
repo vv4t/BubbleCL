@@ -1013,6 +1013,10 @@ class RacingLogic {
 	_finished = false;
 	_untilStart = 5.0;
 	_mapName = "";
+	_isAutoRetry = false;
+	_prevSpeed = 0.0;
+	_currentSpeed = 0.0;
+	_autoRetryLimit = 100.0;
 
 	function Init(mapOffset, mapName) {
 		self._mapOffset = mapOffset;
@@ -1062,6 +1066,28 @@ class RacingLogic {
 
 			self._untilStart = startTime;
 			Game.Print("Set racing start time to " + self._untilStart + "s.");
+		}
+		if (message == "!autoretry") { 
+			self._isAutoRetry = !self._isAutoRetry; 
+			if (self._isAutoRetry) {
+				Game.Print("Auto retry <color=green>enabled</color>");
+			}
+			else{
+				Game.Print("Auto retry <color=red>disabled</color>");
+			}
+		}
+		if (String.StartsWith(message, "!autoretrylimit ")) {
+			if (String.Length(message) > String.Length("!autoretrylimit ")) {
+				limit = Convert.ToFloat(String.Substring(message, String.Length("!autoretrylimit ")));
+				if (limit < 100.0) {
+					Game.Print("<color=red>Auto retry limit must be more than 100.0.</color>");
+					return false;
+				}	
+			} else{
+				limit = 100;
+			}
+			self._autoRetryLimit = limit;
+			Game.Print("Set auto retry speed limit to " + self._autoRetryLimit + ".");
 		}
 	}
 	
@@ -1123,6 +1149,21 @@ class RacingLogic {
 		} else {
 			UI.SetLabel("TopCenter", "Race Starts In: " + String.FormatFloat(Math.Abs(self.GetRaceTime()), 2));
 		}
+
+		if (self._isAutoRetry) {
+
+			me = Network.MyPlayer.Character;
+			self._currentSpeed = me.Velocity.Magnitude;
+			
+			speedDelta = self._prevSpeed - self._currentSpeed;
+
+			if (speedDelta > self._autoRetryLimit) {
+				self.Reset();
+			}
+			else{
+				self._prevSpeed = self._currentSpeed;
+			}
+		}
 	}
 
 	function GetRaceTime() {
@@ -1139,6 +1180,8 @@ class RacingLogic {
 		self._started = false;
 		self._finished = false;
 		self._startTime = Time.GameTime + self._untilStart;
+		self._prevSpeed = 0.0;
+		self._currentSpeed = 0.0;
 	}
 
 	function SubmitScore(roundTime) {
