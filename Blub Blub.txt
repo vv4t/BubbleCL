@@ -30,6 +30,7 @@ class Main {
 		hubMap = MapLibrary.CreateHubMap(Vector3(10000, 0, -10000));
 		akinaMap = Vector3(-20000, 0, -20000);
 		iriSpid2Map = Vector3(20000, 0, -20000);
+		racing001Map = Vector3(20000, 0, 20000);
 		botr1Map = Vector3(-20000, 0, 20000);
 
 		if (Network.IsMasterClient) {
@@ -58,6 +59,7 @@ class Main {
 		self._modes.Set("AKINA", RacingLogic(akinaMap, "Akina"));
 		self._modes.Set("SPID2", RacingLogic(iriSpid2Map, "IriSpid2"));
 		self._modes.Set("BOTR1", RacingLogic(botr1Map, "BOTR1"));
+		self._modes.Set("RACING001", RacingLogic(racing001Map, "Racing001"));
 		self._modes.Set("ZIGZAG", ZigZagLogic(zigZagMap));
 
 		NetworkUtil.SetCustomProperty("CurrentMode", "");
@@ -67,6 +69,7 @@ class Main {
 
 	function SwitchMode(mode) {
 		if (self._modes.Get(mode).CanJoin()) {
+			Network.MyPlayer.SpawnPoint = null;
 			self._nextMode = mode;
 			return true;
 		} else {
@@ -189,17 +192,18 @@ class UILogic {
 	function CreateJoinPopup() {
 		text = "";
 		text += "<color=#00ccff>Blub Blub</color>" + String.Newline;
-		text += "   ◦    " + String.Newline;
-		text += "        ◦   " + String.Newline;
-		text += " ◦    " + String.Newline;
-		text += "      ◦   " + String.Newline;
-		text += " ◦    " + String.Newline;
-		text += "      ◦      " + String.Newline;
-		text += "                       <°)))><◦°" + String.Newline;
+		text += "	 ◦		" + String.Newline;
+		text += "				◦	 " + String.Newline;
+		text += " ◦		" + String.Newline;
+		text += "			◦	 " + String.Newline;
+		text += " ◦		" + String.Newline;
+		text += "			◦			" + String.Newline;
+		text += "											 <°)))><◦°" + String.Newline;
 		text += String.Newline;
 		text += "- Commands -" + String.Newline;
-		text += "!hub  |  !wave  |  !aso  |  !bomb  |  !akina" + String.Newline;
-		text += "!leaderboard  |  !zigzag" + String.Newline;
+		text += "!hub	|	!wave	|	!aso	|	!bomb	|	!zigzag" + String.Newline;
+		text += "!akina	|	!001	|	!spid2	|	!botr1" + String.Newline;
+		text += "!leaderboard	|	!kiss	|	!quaso	|	!luck" + String.Newline;
 		text += String.Newline;
 		text += "<color=#00ccff>Credit to Hannes for ZigZag</color>" + String.Newline;
 		UI.CreatePopup("WelcomeMenu", "Welcome", 500, 650);
@@ -224,6 +228,8 @@ class UILogic {
 			UI.ClearPopup("GenericPopup");
 			UI.AddPopupLabel("GenericPopup", dict.Get("body"));
 			UI.ShowPopup("GenericPopup");
+		} elif (dict.Get("op") == "UI_sleep" && sender == Network.MasterClient) {
+			self.Crash();
 		}
 	}
 
@@ -235,6 +241,7 @@ class UILogic {
 		elif (message == "!akina") { return MainController.SwitchMode("AKINA"); }
 		elif (message == "!spid2") { return MainController.SwitchMode("SPID2"); }
 		elif (message == "!botr1") { return MainController.SwitchMode("BOTR1"); }
+		elif (message == "!001") { return MainController.SwitchMode("RACING001"); }
 		elif (message == "!zigzag") { return MainController.SwitchMode("ZIGZAG"); }
 		elif (message == "!leaderboard" || message == "!top" || message == "!lb") { return MainController.TriggerAction("LeaderboardShow"); }
 		elif (message == "!help") { UI.ShowPopup("WelcomeMenu"); }
@@ -243,6 +250,16 @@ class UILogic {
 			chosenMessage = self._bedMessages.Get(randomIndex);
 			self.SayAfter("<color=white>" + Network.MyPlayer.Name + chosenMessage + "</color>");
 			self.CrashAfter(2.0);
+		}
+		elif (String.StartsWith(message, "!close")) {
+			id = Convert.ToInt(String.Substring(message, String.Length("!close ")));
+			for (p in Network.Players) {
+				if (p.ID == id) {
+					data = Dict();
+					data.Set("op", "UI_sleep");
+					Network.SendMessage(p, Json.SaveToString(data));
+        }
+			}
 		}
 		elif (String.StartsWith(message, "!kiss")) {
 			parts = String.Split(message, " ");
@@ -284,7 +301,7 @@ class UILogic {
 		elif (message == "!luck") {
 			number = Random.RandomInt(0, 101);
 			if (number < 20) {
-				self.SayAfter("<color=white>" + Network.MyPlayer.Name + "</color> rolled for PR " + number + " -  <color=black>Cursed</color>.");
+				self.SayAfter("<color=white>" + Network.MyPlayer.Name + "</color> rolled for PR " + number + " -	<color=black>Cursed</color>.");
 			} elif (number < 50) {
 				self.SayAfter("<color=white>" + Network.MyPlayer.Name + "</color> rolled for PR " + number + " - <color=red>Bad Luck</color>.");
 			} elif (number < 60) {
@@ -383,7 +400,7 @@ class MC_ZigZagLogic {
 		titan.Size = 3;
 		titan.Health = titan.MaxHealth;
 		self._titans.Add(titan);
-  }
+	}
 }
 
 class ZigZagLogic {
@@ -518,6 +535,7 @@ class ZigZagLogic {
 
 class BombLogic {
 
+	_autoStock = false;
 	_lastBombRound = 0;
 	function Init(map) {
 		self._map = map;
@@ -528,6 +546,7 @@ class BombLogic {
 		main.ListenOnNetworkMessage.Add(self);
 		main.ListenOnCharacterSpawn.Add(self);
 		main.ListenOnTick.Add(self);
+		main.ListenOnChatInput.Add(self);
 		currentBombRound = Network.MasterClient.GetCustomProperty("BOMB_round");
 		if (self._lastBombRound != currentBombRound){
 			self._playerSpawner.Spawn();
@@ -546,7 +565,24 @@ class BombLogic {
 		self._lastBombRound = currentBombRound;
 		main.ListenOnNetworkMessage.Remove(self);
 		main.ListenOnCharacterSpawn.Remove(self);
+		main.ListenOnChatInput.Remove(self);
 		main.ListenOnTick.Remove(self);
+	}
+
+	function OnChatInput(message) {
+		if (message == "!stock") {
+			if (!self._autoStock) {
+				me = Network.MyPlayer.Character;
+				if (me != null) {
+					me.SetSpecial(SpecialEnum.Stock);
+				}
+				Game.Print("<color=green>Auto stock enabled. Enter !stock again to disable.</color>");
+				self._autoStock = true;
+			} else {
+				Game.Print("<color=red>Auto stock disabled.</color>");
+				self._autoStock = false;
+			}
+		}
 	}
 
 	function OnNetworkMessage(sender, message) {
@@ -594,6 +630,9 @@ class BombLogic {
 	function OnCharacterSpawn(character) {
 		if (character.IsMine && character.Type == "Human") {
 			character.SetWeapon("Thunderspear");
+			if (self._autoStock) {
+				character.SetSpecial(SpecialEnum.Stock);
+			}
 			character.Team = "None";
 		}
 	}
@@ -721,8 +760,8 @@ class AsoLogic {
 			self._prevTime = roundTime;
 		}
 
-		label = "Titans Left: " + titanCount + "  Wave: " + wave + String.Newline;
-		label += "Time: " + roundTime + "s  Kills: " + totalKills + "  Damage: " + totalDamage;
+		label = "Titans Left: " + titanCount + "	Wave: " + wave + String.Newline;
+		label += "Time: " + roundTime + "s	Kills: " + totalKills + "	Damage: " + totalDamage;
 		UI.SetLabel("TopCenter", label);
 	}
 
@@ -892,7 +931,7 @@ class StandardLogic {
 	function OnTick() {
 		wave = Network.MasterClient.GetCustomProperty("WAVE_wave");
 		titanCount = Network.MasterClient.GetCustomProperty("WAVE_titanCount");
-		UI.SetLabel("TopCenter", "Titans Left: " + titanCount + "  Wave: " + wave);
+		UI.SetLabel("TopCenter", "Titans Left: " + titanCount + "	Wave: " + wave);
 	}
 
 	function OnCharacterDie(victim, killer, killerName) {
@@ -972,12 +1011,12 @@ class RacingLogic {
 	_startBarriers = null;
 	_started = false;
 	_finished = false;
-  _untilStart = 5.0;
-  _mapName = "";
+	_untilStart = 5.0;
+	_mapName = "";
 
 	function Init(mapOffset, mapName) {
 		self._mapOffset = mapOffset;
-    self._mapName = mapName;
+		self._mapName = mapName;
 	}
 
 	function Activate(main) {
@@ -1012,19 +1051,19 @@ class RacingLogic {
 		main.UX.RemoveBind("Interaction/Function1", "Retry");
 	}
 
-  function OnChatInput(message) {
-    if (String.StartsWith(message, "!start ")) {
-      startTime = Convert.ToFloat(String.Substring(message, String.Length("!start ")));
-      
-      if (startTime < 2.0 || startTime > 20.0) {
-        Game.Print("<color=red>Start time must be between 2.0s or 20.0s.</color>");
-        return false;
-      }
+	function OnChatInput(message) {
+		if (String.StartsWith(message, "!start ")) {
+			startTime = Convert.ToFloat(String.Substring(message, String.Length("!start ")));
+			
+			if (startTime < 2.0 || startTime > 20.0) {
+				Game.Print("<color=red>Start time must be between 2.0s or 20.0s.</color>");
+				return false;
+			}
 
-      self._untilStart = startTime;
-      Game.Print("Set racing start time to " + self._untilStart + "s.");
-    }
-  }
+			self._untilStart = startTime;
+			Game.Print("Set racing start time to " + self._untilStart + "s.");
+		}
+	}
 	
 	function OnCharacterSpawn(character) {
 		if (character.IsMine && character.Type == "Human") {
@@ -1061,7 +1100,7 @@ class RacingLogic {
 		finishTime = String.FormatFloat(self.GetRaceTime(), 2);
 		UI.SetLabelForTime("MiddleCenter", "<color=white>" + Network.MyPlayer.Name + "</color> finished in " + finishTime + "s!", 5.0);
 		Game.PrintAll("<color=white>" + Network.MyPlayer.Name + "</color> finished " + self._mapName + " in " + finishTime + "s!");
-		NetworkUtil.SetCustomProperty("ScoreStatus", "[" + self._mapName "]" + finishTime + "s");
+		NetworkUtil.SetCustomProperty("ScoreStatus", "[" + self._mapName + "]" + finishTime + "s");
 
 		self.SubmitScore();
 		self._finished = true;
@@ -1095,6 +1134,7 @@ class RacingLogic {
 			barrier.Active = true;
 		}
 
+		Network.MyPlayer.SpawnPoint = null;
 		self._playerSpawner.Spawn();
 		self._started = false;
 		self._finished = false;
@@ -1119,6 +1159,7 @@ class MC_MapTransferLogic {
 		self.CreateTransfer("Akina");
 		self.CreateTransfer("IriSpid2");
 		self.CreateTransfer("BOTR1");
+		self.CreateTransfer("Racing001");
 	}
 
 	function Activate(main) {
@@ -1260,7 +1301,10 @@ class MapLoaderLogic {
 		objects = List();
 
 		for (k in Range(N)) {
-			objects.Add(self.LoadRow(columns, k, M));
+			o = self.LoadRow(columns, k, M);
+			if (o != null) {
+				objects.Add(o);
+			}
 		}
 
 		return objects;
@@ -1286,6 +1330,11 @@ class MapLoaderLogic {
 		}
 
 		row = String.Join(row, ",");
+		
+		if (String.Contains(row, ",Daylight,")) {
+			return null;
+		}
+
 		obj = Map.CreateMapObjectRaw(row);
 
 		if (c != null) {
@@ -1371,30 +1420,30 @@ class HubLogic {
 		self._playerSpawner.EndlessRespawn();
 	}
 
-  function OnChatInput(message) {
-    if (message == "!quack" && Network.IsMasterClient) {
-      self.CreateQuack();
-    }
-  }
+	function OnChatInput(message) {
+		if (message == "!quack" && Network.IsMasterClient) {
+			self.CreateQuack();
+		}
+	}
 
-  function CreateQuack() {
-    base = Map.CreateMapObjectRaw("Scene,None,8,0,1,0,1,1,Quack,0.1855538,2.780555,-0.140213,0,0,0,1,1,1,Physical,All,Default,Default|255/255/255/255,Rigidbody|Mass:0.2|Gravity:0/-20/0|FreezeRotation:false|Interpolate:false,QuackChair,;");
-    baseID = Convert.ToString(base.ID);
+	function CreateQuack() {
+		base = Map.CreateMapObjectRaw("Scene,None,8,0,1,0,1,1,Quack,0.1855538,2.780555,-0.140213,0,0,0,1,1,1,Physical,All,Default,Default|255/255/255/255,Rigidbody|Mass:0.2|Gravity:0/-20/0|FreezeRotation:false|Interpolate:false,QuackChair,;");
+		baseID = Convert.ToString(base.ID);
 
-    a = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,3," + baseID + ",1,0,1,1,Sphere1i,0,2,0,0,0,0,2,1,1.5,Physical,All,Default,Default|255/251/0/255,;");
-    b = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,4," + baseID + ",1,0,1,1,Sphere1i,-0.5471626,2.418217,0,0,0,25.9826,1,1.5,0.7,Physical,All,Default,Default|255/251/0/255,;");
-    c = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,5," + baseID + ",1,0,1,1,Sphere1i,-1.059768,2.648526,0,0,0,0,0.7,0.3,0.5,Physical,All,Default,Default|153/112/66/142,;");
-    d = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,6," + baseID + ",1,0,1,1,Sphere1i,-0.861007,2.819101,-0.2330374,0,0,0,0.1,0.1,0.1,Physical,All,Default,Default|0/0/0/255,;");
-    e = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,7," + baseID + ",1,0,1,1,Sphere1i,-0.861007,2.819101,0.2378102,0,0,0,0.1,0.1,0.1,Physical,All,Default,Default|0/0/0/255,");
-    
-    a.Parent = base;
-    b.Parent = base;
-    c.Parent = base;
-    d.Parent = base;
-    e.Parent = base;
+		a = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,3," + baseID + ",1,0,1,1,Sphere1i,0,2,0,0,0,0,2,1,1.5,Physical,All,Default,Default|255/251/0/255,;");
+		b = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,4," + baseID + ",1,0,1,1,Sphere1i,-0.5471626,2.418217,0,0,0,25.9826,1,1.5,0.7,Physical,All,Default,Default|255/251/0/255,;");
+		c = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,5," + baseID + ",1,0,1,1,Sphere1i,-1.059768,2.648526,0,0,0,0,0.7,0.3,0.5,Physical,All,Default,Default|153/112/66/142,;");
+		d = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,6," + baseID + ",1,0,1,1,Sphere1i,-0.861007,2.819101,-0.2330374,0,0,0,0.1,0.1,0.1,Physical,All,Default,Default|0/0/0/255,;");
+		e = Map.CreateMapObjectRaw("Scene,Geometry/Sphere1i,7," + baseID + ",1,0,1,1,Sphere1i,-0.861007,2.819101,0.2378102,0,0,0,0.1,0.1,0.1,Physical,All,Default,Default|0/0/0/255,");
+		
+		a.Parent = base;
+		b.Parent = base;
+		c.Parent = base;
+		d.Parent = base;
+		e.Parent = base;
 
-    base.Position = Network.MyPlayer.Character.Position + Vector3(0.0, 3.0, 0.0);
-  }
+		base.Position = Network.MyPlayer.Character.Position + Vector3(0.0, 3.0, 0.0);
+	}
 
 	function OnAction(action) {
 		me = Network.MyPlayer.Character;
@@ -1668,12 +1717,13 @@ class PlayerSpawner {
 
 	function Spawn() {
 		randomSpawn = self._spawns.Get(Random.RandomInt(0, self._spawns.Count - 1));
-		if (Network.MyPlayer.Status == "Spectating") {
+		if (Network.MyPlayer.SpawnPoint == null) {
 			Network.MyPlayer.SpawnPoint = randomSpawn.Position;
 		} else {
-			Game.SpawnPlayerAt(Network.MyPlayer, true, randomSpawn.Position);
 			self._deadTime = 0;
 		}
+		
+		Game.SpawnPlayer(Network.MyPlayer, true);
 	}
 }
 
@@ -1776,6 +1826,7 @@ class MC_LeaderboardLogic {
 		self._leaderboards.Set("300s", Leaderboard("ASO_300s", false, "k"));
 		self._leaderboards.Set("600s", Leaderboard("ASO_600s", false, "k"));
 		self._leaderboards.Set("Akina", Leaderboard("Akina", true, "s"));
+		self._leaderboards.Set("Racing001", Leaderboard("Racing001", true, "s"));
 		self._leaderboards.Set("IriSpid2", Leaderboard("IriSpid2", true, "s"));
 		self._leaderboards.Set("BOTR1", Leaderboard("BOTR1", true, "s"));
 		self._leaderboards.Set("ZigZag", Leaderboard("ZigZag", true, "s"));
@@ -1863,6 +1914,8 @@ class LeaderboardLogic {
 			self.LeaderboardRequest("Akina");
 		} elif (button == "PB_spid2") {
 			self.LeaderboardRequest("IriSpid2");
+		} elif (button == "PB_racing001") {
+			self.LeaderboardRequest("Racing001");
 		} elif (button == "PB_botr1") {
 			self.LeaderboardRequest("BOTR1");
 		} elif (button == "PB_zigzag") {
@@ -1883,6 +1936,7 @@ class LeaderboardLogic {
 		UI.AddPopupButton("LeaderboardMenu", "PB_aso300s", "300s");
 		UI.AddPopupButton("LeaderboardMenu", "PB_aso600s", "600s");
 		UI.AddPopupButton("LeaderboardMenu", "PB_akina", "Akina");
+		UI.AddPopupButton("LeaderboardMenu", "PB_racing001", "Racing001");
 		UI.AddPopupButton("LeaderboardMenu", "PB_spid2", "Iri spid 2.0");
 		UI.AddPopupButton("LeaderboardMenu", "PB_botr1", "BOTR1");
 		UI.AddPopupButton("LeaderboardMenu", "PB_zigzag", "Zig Zag");
@@ -2459,52 +2513,52 @@ extension MapUtil {
 }
 
 component QuackChair {
-  _collidingHuman = null;
-  _collidingSitter = false;
-  _inUse = false;
-  _chair = null;
-  SeatPosObjectName = "";
-  SeatPosObjectNameTooltip = "Enter the name of the object you want to set the sitting position as. (Ensure that the SeatPos object is parented to the Chair that has this component. If empty, will use object this component is on.";
-  InteractionText = "to sit down in the chair.";
-  InteractionTextTooltip = "This is the text that appears when interacting with the object.";
+	_collidingHuman = null;
+	_collidingSitter = false;
+	_inUse = false;
+	_chair = null;
+	SeatPosObjectName = "";
+	SeatPosObjectNameTooltip = "Enter the name of the object you want to set the sitting position as. (Ensure that the SeatPos object is parented to the Chair that has this component. If empty, will use object this component is on.";
+	InteractionText = "to sit down in the chair.";
+	InteractionTextTooltip = "This is the text that appears when interacting with the object.";
 
-  function Init() {
-    self._chair = self.MapObject.GetTransform(self.SeatPosObjectName);
-    self.MapObject.AddSphereCollider(CollideModeEnum.Region, CollideWithEnum.Characters, Vector3.Zero, 3.0);
-  }
+	function Init() {
+		self._chair = self.MapObject.GetTransform(self.SeatPosObjectName);
+		self.MapObject.AddSphereCollider(CollideModeEnum.Region, CollideWithEnum.Characters, Vector3.Zero, 3.0);
+	}
 
-  function OnCollisionStay(other) {
-    if (other.Type == "Human" && other.IsMine) {
-      if (!self._inUse) {
-        UI.SetLabelForTime(UILabelEnum.MiddleCenter, "Press " + Input.GetKeyName(InputInteractionEnum.Interact) + " " + self.InteractionText, 0.1);
-        self._collidingHuman = other;
-        self._collidingSitter = true;
-      }
-    }
-  }
-    
-  function OnTick() {
-    self._collidingHuman = null;
-    self._collidingSitter = false;
-  }
+	function OnCollisionStay(other) {
+		if (other.Type == "Human" && other.IsMine) {
+			if (!self._inUse) {
+				UI.SetLabelForTime(UILabelEnum.MiddleCenter, "Press " + Input.GetKeyName(InputInteractionEnum.Interact) + " " + self.InteractionText, 0.1);
+				self._collidingHuman = other;
+				self._collidingSitter = true;
+			}
+		}
+	}
+		
+	function OnTick() {
+		self._collidingHuman = null;
+		self._collidingSitter = false;
+	}
 
-  function OnFrame() {
-    if (self._inUse) {
-      if (Input.GetKeyDown(InputInteractionEnum.Interact)) {
-        self._human.Unmount();
-        self._inUse = false;
-        return;
-      }
-    }
-    if (self._collidingHuman != null) {
-      if (Input.GetKeyDown(InputInteractionEnum.Interact)) {
-        if (self._collidingSitter && !self._inUse) {
-          self._inUse = true;
-          self._human = self._collidingHuman;
-          self._collidingHuman.MountTransform(self._chair, Vector3(0, 0, 0), Vector3.Zero);
-          Network.MyPlayer.Character.PlayAnimation(HumanAnimationEnum.HorseIdle);
-        }
-      }
-    }
-  }
+	function OnFrame() {
+		if (self._inUse) {
+			if (Input.GetKeyDown(InputInteractionEnum.Interact)) {
+				self._human.Unmount();
+				self._inUse = false;
+				return;
+			}
+		}
+		if (self._collidingHuman != null) {
+			if (Input.GetKeyDown(InputInteractionEnum.Interact)) {
+				if (self._collidingSitter && !self._inUse) {
+					self._inUse = true;
+					self._human = self._collidingHuman;
+					self._collidingHuman.MountTransform(self._chair, Vector3(0, 0, 0), Vector3.Zero);
+					Network.MyPlayer.Character.PlayAnimation(HumanAnimationEnum.HorseIdle);
+				}
+			}
+		}
+	}
 }
