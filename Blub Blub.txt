@@ -1071,8 +1071,8 @@ class RacingLogic {
 			self._isAutoRetry = !self._isAutoRetry; 
 			if (self._isAutoRetry) {
 				Game.Print("Auto retry <color=green>enabled</color>");
-			}
-			else{
+				Game.Print("Set auto retry speed limit to " + self._autoRetryLimit + ".");
+			} else{
 				Game.Print("Auto retry <color=red>disabled</color>");
 			}
 		}
@@ -1083,8 +1083,6 @@ class RacingLogic {
 					Game.Print("<color=red>Auto retry limit must be more than 100.0.</color>");
 					return false;
 				}	
-			} else{
-				limit = 100;
 			}
 			self._autoRetryLimit = limit;
 			Game.Print("Set auto retry speed limit to " + self._autoRetryLimit + ".");
@@ -1153,6 +1151,9 @@ class RacingLogic {
 		if (self._isAutoRetry) {
 
 			me = Network.MyPlayer.Character;
+			if (me == null) {
+				return;
+				}
 			self._currentSpeed = me.Velocity.Magnitude;
 			
 			speedDelta = self._prevSpeed - self._currentSpeed;
