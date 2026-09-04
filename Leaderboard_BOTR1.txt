@@ -1,0 +1,3 @@
+{
+    "scores" : "string:{\r\n    \"soft & wet\" : \"int:18128\",\r\n    \"<color=#000000>S</color><color=#ffffff>core</color>\" : \"int:15521\"\r\n}"
+}
