@@ -202,11 +202,11 @@ class UILogic {
 		text += String.Newline;
 		text += "- Commands -" + String.Newline;
 		text += "!hub	|	!wave	|	!aso	|	!bomb	|	!zigzag" + String.Newline;
-		text += "!akina	|	!001	|	!spid2	|	!botr1" + String.Newline;
-		text += "!leaderboard	|	!kiss	|	!quaso	|	!luck" + String.Newline;
+		text += "!akina	 |  !001  |  !spid2  |  !botr1" + String.Newline;
+		text += "!leaderboard  |  !kiss  |  !quaso  |  !luck" + String.Newline;
 		text += String.Newline;
 		text += "<color=#00ccff>Credit to Hannes for ZigZag</color>" + String.Newline;
-		UI.CreatePopup("WelcomeMenu", "Welcome", 500, 650);
+		UI.CreatePopup("WelcomeMenu", "Welcome", 600, 750);
 		UI.AddPopupLabel("WelcomeMenu", text);
 		UI.ShowPopup("WelcomeMenu");
 	}
@@ -1742,7 +1742,7 @@ class AfkLogic {
 }
 
 class PlayerSpawner {
-	ReviveAfter = 5;
+	ReviveAfter = 2;
 
 	_deadTime = 0;
 
