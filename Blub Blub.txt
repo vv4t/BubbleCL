@@ -63,7 +63,7 @@ class Main {
 		self._modes.Set("ZIGZAG", ZigZagLogic(zigZagMap));
 
 		NetworkUtil.SetCustomProperty("CurrentMode", "");
-		self.SwitchMode("WAVE");
+		self.SwitchMode("HUB");
 		self.UpdateMode();
 	}
 
@@ -208,7 +208,7 @@ class UILogic {
 		text += "<color=#00ccff>Credit to Hannes for ZigZag</color>" + String.Newline;
 		UI.CreatePopup("WelcomeMenu", "Welcome", 600, 750);
 		UI.AddPopupLabel("WelcomeMenu", text);
-		UI.ShowPopup("WelcomeMenu");
+		# UI.ShowPopup("WelcomeMenu");
 	}
 
 	function AddBind(key, action) {
@@ -2198,7 +2198,11 @@ class PathCompressor {
 	}
 
 	function OnSample(sample) {
-		self._pearson.AddSample(sample);
+    self._pearson.AddSample(sample);
+
+    if (self._pearson._sampleCount < 5) {
+      return;
+    }
 
 		cosAngle = 1.0;
 		if (self._prevSample != null) {
@@ -2206,7 +2210,7 @@ class PathCompressor {
 		}
 
 		r = self._pearson.GetCorrelation();
-		shouldSplit = Math.Abs(r) < self.MinCorrelation || cosAngle < self.MaxCosAngle || self._sampleBuffer.Count > self.MaxSampleCount;
+		shouldSplit = Math.Abs(r) < self.MinCorrelation || cosAngle < self.MaxCosAngle || self._pearson._sampleCount > self.MaxSampleCount;
 
 		if (shouldSplit) {
 			curve = CurveUtil.FitBezier(self._pointBuffer);
@@ -2329,12 +2333,12 @@ class PearsonCorrelation {
 
 	function GetSigmaX() {
 		n = self._sampleCount;
-		return Math.Sqrt(self._sxx / n - self._sx * self._sx / n / n);
+		return self._sxx / n - self._sx * self._sx / n / n;
 	}
 
 	function GetSigmaY() {
 		n = self._sampleCount;
-		return Math.Sqrt(self._syy / n - self._sy * self._sy / n / n);
+		return self._syy / n - self._sy * self._sy / n / n;
 	}
 
 	function GetCorrelation() {
@@ -2342,7 +2346,10 @@ class PearsonCorrelation {
 		cov = self._sxy / n - self._sx * self._sy / n / n;
 		sigmax = self.GetSigmaX();
 		sigmay = self.GetSigmaY();
-		return cov / sigmax / sigmay;
+    if (Math.Abs(sigmax * sigmay) < 0.0001) {
+      return 0.0;
+    }
+		return Math.Sqrt(cov * cov / sigmax / sigmay);
 	}
 }
 
