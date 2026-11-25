@@ -21,7 +21,8 @@ class Main {
 		MainController.InitMain(self);
 	}
 
-	function OnGameStart() {BOTR1		UI.SetScoreboardProperty("ScoreStatus");
+	function OnGameStart() {
+    UI.SetScoreboardProperty("ScoreStatus");
 
 		standardMap = MapSubset(Map.FindAllMapObjects());
 		asoMap = standardMap.CreateCopy(Vector3(10000, 0, 10000));
@@ -63,7 +64,7 @@ class Main {
 		self._modes.Set("ZIGZAG", ZigZagLogic(zigZagMap));
 
 		NetworkUtil.SetCustomProperty("CurrentMode", "");
-		self.SwitchMode("HUB");
+		self.SwitchMode("WAVE");
 		self.UpdateMode();
 	}
 
@@ -208,7 +209,7 @@ class UILogic {
 		text += "<color=#00ccff>Credit to Hannes for ZigZag</color>" + String.Newline;
 		UI.CreatePopup("WelcomeMenu", "Welcome", 600, 750);
 		UI.AddPopupLabel("WelcomeMenu", text);
-		# UI.ShowPopup("WelcomeMenu");
+		UI.ShowPopup("WelcomeMenu");
 	}
 
 	function AddBind(key, action) {
